@@ -61,19 +61,29 @@ exports.updateUserRole = async (req, res) => {
     }
 
     const { role } = req.body;
-    const user = await User.findByIdAndUpdate(
+    const user = await User.findById(req.params.id);
+
+    // Prevent modifying the main super admin
+    if (user && user.email === process.env.ADMIN_EMAIL) {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot modify the main super admin account",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { role },
       { new: true },
     ).select("-password");
 
-    if (!user) {
+    if (!updatedUser) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
 
-    res.json({ success: true, user });
+    res.json({ success: true, user: updatedUser });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -90,19 +100,68 @@ exports.deactivateUser = async (req, res) => {
         .json({ success: false, message: "Not authorized" });
     }
 
-    const user = await User.findByIdAndUpdate(
+    const user = await User.findById(req.params.id);
+
+    // Prevent deactivating the main super admin
+    if (user && user.email === process.env.ADMIN_EMAIL) {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot deactivate the main super admin account",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { isActive: false },
       { new: true },
     ).select("-password");
 
-    if (!user) {
+    if (!updatedUser) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
 
-    res.json({ success: true, user });
+    res.json({ success: true, user: updatedUser });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc Activate user
+// @route PUT /api/admin/users/:id/activate
+// @access Private/Admin
+exports.activateUser = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    const user = await User.findById(req.params.id);
+
+    // Prevent modifying the main super admin
+    if (user && user.email === process.env.ADMIN_EMAIL) {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot modify the main super admin account",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { isActive: true },
+      { new: true },
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, user: updatedUser });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -274,9 +333,11 @@ exports.getAllStudents = async (req, res) => {
         .json({ success: false, message: "Not authorized" });
     }
 
-    const students = await User.find({ role: "student" })
+    // Get all users EXCEPT the main super admin (env admin)
+    const mainAdminEmail = process.env.ADMIN_EMAIL;
+    const students = await User.find({ email: { $ne: mainAdminEmail } })
       .select(
-        "firstName lastName email indexNumber nicNumber alBatch school address createdAt isActive",
+        "firstName lastName email role indexNumber nicNumber alBatch school address createdAt isActive",
       )
       .sort({ createdAt: -1 });
 

@@ -6,6 +6,7 @@ const {
   getUserById,
   updateUserRole,
   deactivateUser,
+  activateUser,
   createAnnouncement,
   getAnnouncements,
   getLeaderboard,
@@ -27,6 +28,12 @@ router.put(
   protect,
   authorize("admin"),
   deactivateUser,
+);
+router.put(
+  "/users/:id/activate",
+  protect,
+  authorize("admin"),
+  activateUser,
 );
 
 // Announcements
