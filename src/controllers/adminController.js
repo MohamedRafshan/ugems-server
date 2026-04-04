@@ -49,15 +49,16 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-// @desc Update user role (admin only)
+// @desc Update user role (super admin only)
 // @route PUT /api/admin/users/:id/role
-// @access Private/Admin
+// @access Private/Admin/Super
 exports.updateUserRole = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Not authorized" });
+    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+      return res.status(403).json({
+        success: false,
+        message: "Only super admin can modify user roles",
+      });
     }
 
     const { role } = req.body;
@@ -71,9 +72,12 @@ exports.updateUserRole = async (req, res) => {
       });
     }
 
+    // Set adminTier based on role being assigned
+    const adminTier = role !== "student" ? "limited" : null;
+
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      { role },
+      { role, adminTier },
       { new: true },
     ).select("-password");
 
@@ -89,15 +93,16 @@ exports.updateUserRole = async (req, res) => {
   }
 };
 
-// @desc Deactivate user
+// @desc Deactivate user (super admin only)
 // @route PUT /api/admin/users/:id/deactivate
-// @access Private/Admin
+// @access Private/Admin/Super
 exports.deactivateUser = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Not authorized" });
+    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+      return res.status(403).json({
+        success: false,
+        message: "Only super admin can deactivate users",
+      });
     }
 
     const user = await User.findById(req.params.id);
@@ -128,15 +133,16 @@ exports.deactivateUser = async (req, res) => {
   }
 };
 
-// @desc Activate user
+// @desc Activate user (super admin only)
 // @route PUT /api/admin/users/:id/activate
-// @access Private/Admin
+// @access Private/Admin/Super
 exports.activateUser = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Not authorized" });
+    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+      return res.status(403).json({
+        success: false,
+        message: "Only super admin can activate users",
+      });
     }
 
     const user = await User.findById(req.params.id);
@@ -256,15 +262,16 @@ exports.getLeaderboard = async (req, res) => {
   }
 };
 
-// @desc Get dashboard stats (admin)
+// @desc Get dashboard stats (super admin only)
 // @route GET /api/admin/stats
-// @access Private/Admin
+// @access Private/Admin/Super
 exports.getDashboardStats = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Not authorized" });
+    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+      return res.status(403).json({
+        success: false,
+        message: "Only super admin can view system analytics",
+      });
     }
 
     const totalUsers = await User.countDocuments();
@@ -286,15 +293,16 @@ exports.getDashboardStats = async (req, res) => {
   }
 };
 
-// @desc Get system analytics
+// @desc Get system analytics (super admin only)
 // @route GET /api/admin/analytics
-// @access Private/Admin
+// @access Private/Admin/Super
 exports.getAnalytics = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Not authorized" });
+    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+      return res.status(403).json({
+        success: false,
+        message: "Only super admin can view system analytics",
+      });
     }
 
     const { startDate, endDate } = req.query;
@@ -324,20 +332,21 @@ exports.getAnalytics = async (req, res) => {
 
 // @desc Get all registered students
 // @route GET /api/admin/students
-// @access Private/Admin
+// @access Private/Admin/Super
 exports.getAllStudents = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Not authorized" });
+    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+      return res.status(403).json({
+        success: false,
+        message: "Only super admin can access user management",
+      });
     }
 
     // Get all users EXCEPT the main super admin (env admin)
     const mainAdminEmail = process.env.ADMIN_EMAIL;
     const students = await User.find({ email: { $ne: mainAdminEmail } })
       .select(
-        "firstName lastName email role indexNumber nicNumber alBatch school address createdAt isActive",
+        "firstName lastName email role indexNumber nicNumber alBatch school address createdAt isActive adminTier",
       )
       .sort({ createdAt: -1 });
 
@@ -368,6 +377,17 @@ exports.toggleResourceEnable = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Resource not found" });
     }
+
+    // Limited admin can only toggle their own resources
+    if (req.user.adminTier === "limited") {
+      if (resource.uploadedBy.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: "Cannot modify other creator's resource",
+        });
+      }
+    }
+    // Super admin can toggle any resource (no check needed)
 
     resource.isEnabled = !resource.isEnabled;
     await resource.save();
@@ -400,6 +420,17 @@ exports.toggleResourceHide = async (req, res) => {
         .json({ success: false, message: "Resource not found" });
     }
 
+    // Limited admin can only toggle their own resources
+    if (req.user.adminTier === "limited") {
+      if (resource.uploadedBy.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: "Cannot modify other creator's resource",
+        });
+      }
+    }
+    // Super admin can toggle any resource (no check needed)
+
     resource.isHidden = !resource.isHidden;
     await resource.save();
 
@@ -429,6 +460,17 @@ exports.toggleQuizEnable = async (req, res) => {
       return res.status(404).json({ success: false, message: "Quiz not found" });
     }
 
+    // Limited admin can only toggle their own quizzes
+    if (req.user.adminTier === "limited") {
+      if (quiz.createdBy.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: "Cannot modify other creator's quiz",
+        });
+      }
+    }
+    // Super admin can toggle any quiz (no check needed)
+
     quiz.isEnabled = !quiz.isEnabled;
     await quiz.save();
 
@@ -457,6 +499,17 @@ exports.toggleQuizHide = async (req, res) => {
     if (!quiz) {
       return res.status(404).json({ success: false, message: "Quiz not found" });
     }
+
+    // Limited admin can only toggle their own quizzes
+    if (req.user.adminTier === "limited") {
+      if (quiz.createdBy.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: "Cannot modify other creator's quiz",
+        });
+      }
+    }
+    // Super admin can toggle any quiz (no check needed)
 
     quiz.isHidden = !quiz.isHidden;
     await quiz.save();

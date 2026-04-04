@@ -32,6 +32,12 @@ const userSchema = new mongoose.Schema(
       enum: ["student", "lecturer", "admin"],
       default: "student",
     },
+    adminTier: {
+      type: String,
+      enum: ["super", "limited"],
+      default: null,
+      sparse: true,
+    },
     profilePicture: {
       type: String,
       default: null,
@@ -90,12 +96,35 @@ const userSchema = new mongoose.Schema(
 // Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
+    // Still set adminTier if role was modified
+    if (this.isModified("role")) {
+      this.setAdminTier();
+    }
     next();
+  }
+
+  // Set admin tier based on role and email
+  if (this.isModified("role") || this.isModified("email")) {
+    this.setAdminTier();
   }
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
+
+// Helper method to set adminTier
+userSchema.methods.setAdminTier = function () {
+  const superAdminEmail = process.env.ADMIN_EMAIL;
+
+  if (this.role === "student") {
+    this.adminTier = null;
+  } else if (this.email === superAdminEmail) {
+    this.adminTier = "super";
+    this.role = "admin"; // Ensure super admin has admin role
+  } else if (this.role === "admin" || this.role === "lecturer") {
+    this.adminTier = "limited";
+  }
+};
 
 // Match password method
 userSchema.methods.matchPassword = async function (enteredPassword) {

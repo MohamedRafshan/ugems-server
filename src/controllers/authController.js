@@ -121,6 +121,7 @@ exports.login = async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        adminTier: user.adminTier,
       },
     });
   } catch (error) {
@@ -150,6 +151,7 @@ exports.getUser = async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        adminTier: user.adminTier,
         indexNumber: user.indexNumber,
         address: user.address,
         nicNumber: user.nicNumber,

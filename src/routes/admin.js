@@ -19,20 +19,20 @@ const {
   toggleQuizHide,
 } = require("../controllers/adminController");
 
-// Admin-only routes
-router.get("/users", protect, authorize("admin"), getAllUsers);
-router.get("/users/:id", protect, authorize("admin"), getUserById);
-router.put("/users/:id/role", protect, authorize("admin"), updateUserRole);
+// User Management routes (Super Admin Only)
+router.get("/users", protect, authorize("admin:super"), getAllUsers);
+router.get("/users/:id", protect, authorize("admin:super"), getUserById);
+router.put("/users/:id/role", protect, authorize("admin:super"), updateUserRole);
 router.put(
   "/users/:id/deactivate",
   protect,
-  authorize("admin"),
+  authorize("admin:super"),
   deactivateUser,
 );
 router.put(
   "/users/:id/activate",
   protect,
-  authorize("admin"),
+  authorize("admin:super"),
   activateUser,
 );
 
@@ -48,12 +48,12 @@ router.get("/announcements", getAnnouncements);
 // Leaderboard
 router.get("/leaderboard/:courseId", getLeaderboard);
 
-// Dashboard & Analytics
-router.get("/stats", protect, authorize("admin"), getDashboardStats);
-router.get("/analytics", protect, authorize("admin"), getAnalytics);
+// Dashboard & Analytics (Super Admin Only)
+router.get("/stats", protect, authorize("admin:super"), getDashboardStats);
+router.get("/analytics", protect, authorize("admin:super"), getAnalytics);
 
-// Students
-router.get("/students", protect, authorize("admin"), getAllStudents);
+// Students (Super Admin Only)
+router.get("/students", protect, authorize("admin:super"), getAllStudents);
 
 // Resources Management
 router.put(
