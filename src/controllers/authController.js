@@ -1,8 +1,8 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
+const generateToken = (id, role, adminTier) => {
+  return jwt.sign({ id, role, adminTier }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRY || "7d",
   });
 };
@@ -53,7 +53,7 @@ exports.register = async (req, res) => {
       indexNumber,
     });
 
-    const token = generateToken(user._id, user.role);
+    const token = generateToken(user._id, user.role, user.adminTier);
 
     res.status(201).json({
       success: true,
@@ -109,7 +109,24 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id, user.role);
+    console.log("=== LOGIN DEBUG ===");
+    console.log("user.email:", user.email);
+    console.log("process.env.ADMIN_EMAIL:", process.env.ADMIN_EMAIL);
+    console.log("emails match:", user.email === process.env.ADMIN_EMAIL);
+
+    // Ensure env admin has super tier set
+    if (user.email === process.env.ADMIN_EMAIL) {
+      console.log("Setting adminTier to super for env admin");
+      user.adminTier = "super";
+      user.role = "admin";
+      await user.save();
+      console.log("After save - user.adminTier:", user.adminTier);
+    }
+
+    const token = generateToken(user._id, user.role, user.adminTier);
+
+    console.log("Login response user.adminTier:", user.adminTier);
+    console.log("==================");
 
     res.status(200).json({
       success: true,
@@ -141,6 +158,15 @@ exports.getUser = async (req, res) => {
         success: false,
         message: "User not found",
       });
+    }
+
+    // Ensure env admin has super tier set
+    if (user.email === process.env.ADMIN_EMAIL) {
+      if (user.adminTier !== "super" || user.role !== "admin") {
+        user.adminTier = "super";
+        user.role = "admin";
+        await user.save();
+      }
     }
 
     res.status(200).json({

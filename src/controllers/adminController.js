@@ -54,7 +54,12 @@ exports.getUserById = async (req, res) => {
 // @access Private/Admin/Super
 exports.updateUserRole = async (req, res) => {
   try {
-    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+    // Fetch fresh user from DB to get updated adminTier
+    const freshUser = await User.findById(req.user.id);
+    const isSuperAdmin = (freshUser && freshUser.role === "admin" && freshUser.adminTier === "super") ||
+                        (freshUser && freshUser.email === process.env.ADMIN_EMAIL);
+
+    if (!isSuperAdmin) {
       return res.status(403).json({
         success: false,
         message: "Only super admin can modify user roles",
@@ -98,7 +103,12 @@ exports.updateUserRole = async (req, res) => {
 // @access Private/Admin/Super
 exports.deactivateUser = async (req, res) => {
   try {
-    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+    // Fetch fresh user from DB to get updated adminTier
+    const freshUser = await User.findById(req.user.id);
+    const isSuperAdmin = (freshUser && freshUser.role === "admin" && freshUser.adminTier === "super") ||
+                        (freshUser && freshUser.email === process.env.ADMIN_EMAIL);
+
+    if (!isSuperAdmin) {
       return res.status(403).json({
         success: false,
         message: "Only super admin can deactivate users",
@@ -138,7 +148,12 @@ exports.deactivateUser = async (req, res) => {
 // @access Private/Admin/Super
 exports.activateUser = async (req, res) => {
   try {
-    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+    // Fetch fresh user from DB to get updated adminTier
+    const freshUser = await User.findById(req.user.id);
+    const isSuperAdmin = (freshUser && freshUser.role === "admin" && freshUser.adminTier === "super") ||
+                        (freshUser && freshUser.email === process.env.ADMIN_EMAIL);
+
+    if (!isSuperAdmin) {
       return res.status(403).json({
         success: false,
         message: "Only super admin can activate users",
@@ -267,7 +282,12 @@ exports.getLeaderboard = async (req, res) => {
 // @access Private/Admin/Super
 exports.getDashboardStats = async (req, res) => {
   try {
-    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+    // Fetch fresh user from DB to get updated adminTier
+    const freshUser = await User.findById(req.user.id);
+    const isSuperAdmin = (freshUser && freshUser.role === "admin" && freshUser.adminTier === "super") ||
+                        (freshUser && freshUser.email === process.env.ADMIN_EMAIL);
+
+    if (!isSuperAdmin) {
       return res.status(403).json({
         success: false,
         message: "Only super admin can view system analytics",
@@ -298,7 +318,12 @@ exports.getDashboardStats = async (req, res) => {
 // @access Private/Admin/Super
 exports.getAnalytics = async (req, res) => {
   try {
-    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+    // Fetch fresh user from DB to get updated adminTier
+    const freshUser = await User.findById(req.user.id);
+    const isSuperAdmin = (freshUser && freshUser.role === "admin" && freshUser.adminTier === "super") ||
+                        (freshUser && freshUser.email === process.env.ADMIN_EMAIL);
+
+    if (!isSuperAdmin) {
       return res.status(403).json({
         success: false,
         message: "Only super admin can view system analytics",
@@ -335,7 +360,30 @@ exports.getAnalytics = async (req, res) => {
 // @access Private/Admin/Super
 exports.getAllStudents = async (req, res) => {
   try {
-    if (req.user.role !== "admin" || req.user.adminTier !== "super") {
+    console.log("=== getAllStudents DEBUG ===");
+    console.log("req.user.id:", req.user.id);
+    console.log("req.user.email:", req.user.email);
+    console.log("req.user.role:", req.user.role);
+    console.log("req.user.adminTier:", req.user.adminTier);
+    console.log("process.env.ADMIN_EMAIL:", process.env.ADMIN_EMAIL);
+
+    // Fetch fresh user from DB to get updated adminTier
+    const freshUser = await User.findById(req.user.id);
+    console.log("freshUser found:", !!freshUser);
+    if (freshUser) {
+      console.log("freshUser._id:", freshUser._id);
+      console.log("freshUser.email:", freshUser.email);
+      console.log("freshUser.role:", freshUser.role);
+      console.log("freshUser.adminTier:", freshUser.adminTier);
+    }
+
+    const isSuperAdmin = (freshUser && freshUser.role === "admin" && freshUser.adminTier === "super") ||
+                        (freshUser && freshUser.email === process.env.ADMIN_EMAIL);
+
+    console.log("isSuperAdmin check result:", isSuperAdmin);
+    console.log("================================");
+
+    if (!isSuperAdmin) {
       return res.status(403).json({
         success: false,
         message: "Only super admin can access user management",
@@ -356,6 +404,7 @@ exports.getAllStudents = async (req, res) => {
       students,
     });
   } catch (error) {
+    console.error("getAllStudents error:", error);
     res.status(400).json({ success: false, message: error.message });
   }
 };
