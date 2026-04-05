@@ -1,7 +1,6 @@
 const Resource = require("../models/Resource");
 const Comment = require("../models/Comment");
-const fs = require("fs");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
 
 exports.uploadResource = async (req, res) => {
   try {
@@ -28,7 +27,8 @@ exports.uploadResource = async (req, res) => {
       subject,
       field,
       uploadedBy: req.user.id,
-      filePath: req.file.path,
+      filePath: req.file.secure_url,
+      filePublicId: req.file.public_id,
       fileName: req.file.originalname,
       fileSize: req.file.size,
       fileType: req.file.mimetype.split("/")[1],
@@ -139,9 +139,9 @@ exports.deleteResource = async (req, res) => {
       });
     }
 
-    // Delete file from filesystem
-    if (resource.filePath && fs.existsSync(resource.filePath)) {
-      fs.unlinkSync(resource.filePath);
+    // Delete file from Cloudinary
+    if (resource.filePublicId) {
+      await cloudinary.uploader.destroy(resource.filePublicId);
     }
 
     await Resource.findByIdAndDelete(req.params.id);
@@ -266,14 +266,15 @@ exports.downloadResource = async (req, res) => {
       { new: true },
     );
 
-    if (!resource || !fs.existsSync(resource.filePath)) {
+    if (!resource || !resource.filePath) {
       return res.status(404).json({
         success: false,
         message: "File not found",
       });
     }
 
-    res.download(resource.filePath, resource.fileName);
+    // Redirect to Cloudinary URL
+    res.redirect(resource.filePath);
   } catch (error) {
     res.status(500).json({
       success: false,

@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 const {
   uploadResource,
   getResources,
@@ -14,33 +15,18 @@ const { protect } = require("../middleware/auth");
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+// Configure multer for Cloudinary file uploads
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "ugems/resources",
+    resource_type: "auto",
+    allowed_formats: ["pdf", "doc", "docx", "txt", "ppt", "pptx"],
   },
 });
 
 const upload = multer({
   storage,
-  fileFilter: (req, file, cb) => {
-    const allowedMimes = [
-      "application/pdf",
-      "application/msword",
-      "text/plain",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    ];
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type"));
-    }
-  },
   limits: { fileSize: 52428800 }, // 50MB
 });
 

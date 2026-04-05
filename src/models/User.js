@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
     },
     adminTier: {
       type: String,
-      enum: ["super", "limited"],
+      enum: ["super", "limited", null],
       default: null,
       sparse: true,
     },
@@ -72,6 +72,10 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     school: {
+      type: String,
+      default: null,
+    },
+    phoneNumber: {
       type: String,
       default: null,
     },

@@ -15,6 +15,9 @@ const resourceSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please provide a file path"],
     },
+    filePublicId: {
+      type: String,
+    },
     fileName: {
       type: String,
       required: true,

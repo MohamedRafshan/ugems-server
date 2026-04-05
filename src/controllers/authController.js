@@ -18,13 +18,14 @@ exports.register = async (req, res) => {
       nicNumber,
       alBatch,
       school,
+      phoneNumber,
     } = req.body;
 
     // Validation - all fields required for student registration
-    if (!email || !password || !firstName || !lastName || !address || !nicNumber || !alBatch || !school) {
+    if (!email || !password || !firstName || !lastName || !address || !nicNumber || !alBatch || !school || !phoneNumber) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required fields: email, password, firstName, lastName, address, nicNumber, alBatch, school",
+        message: "Please provide all required fields: email, password, firstName, lastName, address, nicNumber, alBatch, school, phoneNumber",
       });
     }
 
@@ -50,6 +51,7 @@ exports.register = async (req, res) => {
       nicNumber,
       alBatch,
       school,
+      phoneNumber,
       indexNumber,
     });
 
@@ -69,6 +71,7 @@ exports.register = async (req, res) => {
         address: user.address,
         school: user.school,
         alBatch: user.alBatch,
+        phoneNumber: user.phoneNumber,
       },
     });
   } catch (error) {
